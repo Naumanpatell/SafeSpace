@@ -2,33 +2,55 @@ import pandas as pd
 
 print("Loading dataset...")
 
-df = pd.read_csv("train.csv")
+url = "https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/master/data/labeled_data.csv"
 
-print("Dataset loaded")
+df = pd.read_csv(url)
 
-# combine labels
-df["label"] = (
-    df["toxic"]
-    + df["severe_toxic"]
-    + df["insult"]
-    + df["identity_hate"]
-)
+print("Dataset loaded:", len(df))
 
-df["label"] = df["label"].apply(lambda x: 1 if x > 0 else 0)
 
-# keep only needed columns
-df = df[["comment_text", "label"]]
-df = df.rename(columns={"comment_text": "text"})
+def convert_label(row):
+    if row["class"] == 2:
+        return 0   # safe
+    elif row["class"] == 1:
+        return 1   # toxic
+    elif row["class"] == 0:
+        return 2   # racist / hate speech
+    else:
+        return 0
 
-# balance dataset
-safe = df[df["label"] == 0].sample(10000, random_state=42)
-toxic = df[df["label"] == 1].sample(10000, random_state=42)
 
-final_df = pd.concat([safe, toxic])
+dataset = pd.DataFrame()
+
+dataset["text"] = df["tweet"]
+dataset["label"] = df.apply(convert_label, axis=1)
+
+print("Processing dataset...")
+
+# Add some manual sexist examples
+sexist_examples = [
+    "Women belong in the kitchen",
+    "Women are bad drivers",
+    "Girls are too emotional to lead",
+    "A woman's place is at home"
+]
+
+sexist_df = pd.DataFrame({
+    "text": sexist_examples,
+    "label": [3]*len(sexist_examples)
+})
+
+dataset = pd.concat([dataset, sexist_df])
+
+dataset = dataset.dropna()
 
 print("Saving dataset...")
 
-final_df.to_csv("dataset.csv", index=False)
+dataset.to_csv("dataset.csv", index=False)
 
-print("Done!")
-print("Dataset size:", len(final_df))
+print("Dataset saved:", len(dataset))
+print("Labels:")
+print("0 = safe")
+print("1 = toxic")
+print("2 = racist")
+print("3 = sexist")
