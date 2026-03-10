@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
 sys.path.append(r"C:\Users\HP\OneDrive\Desktop\SafeSpace\backend")
-from model_loader import predict_text
+# from model_loader import predict_text
 
 app = FastAPI(title="Outlook Email Tone Checker")
 
@@ -23,7 +23,6 @@ class ReportedEmail(BaseModel):
     subject: str = ""
     body: str = ""
 
-
 @app.post("/check-email")
 async def check_email(email: EmailText):
 
@@ -31,21 +30,34 @@ async def check_email(email: EmailText):
     print(email.text)
     print("----------------------------\n")
 
-    # ✅ Use AI model instead of keyword list
-    result = predict_text(email.text)
-
-    classification = result["classification"]  # safe / toxic / racist / sexist
-    confidence = result["confidence"]
-
-    is_offensive = classification != "safe"
-
-    print(f"🤖 AI Result: {classification} ({confidence})")
-
+    # 🧪 HARDCODED TEST — always returns offensive for frontend testing
     return {
-        "offensive": is_offensive,
-        "classification": classification,
-        "confidence": confidence
+        "offensive": True,
+        "classification": "toxic",
+        "confidence": 0.99
     }
+# @app.post("/check-email")
+# async def check_email(email: EmailText):
+
+#     print("\n------ EMAIL RECEIVED ------")
+#     print(email.text)
+#     print("----------------------------\n")
+
+#     # ✅ Use AI model instead of keyword list
+#     result = predict_text(email.text)
+
+#     classification = result["classification"]  # safe / toxic / racist / sexist
+#     confidence = result["confidence"]
+
+#     is_offensive = classification != "safe"
+
+#     print(f"🤖 AI Result: {classification} ({confidence})")
+
+#     return {
+#         "offensive": is_offensive,
+#         "classification": classification,
+#         "confidence": confidence
+#     }
 
 
 # -----------------------------
