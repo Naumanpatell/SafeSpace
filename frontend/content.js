@@ -290,7 +290,7 @@ function setupSendButton() {
         sendButton.style.setProperty("background", "linear-gradient(135deg, #1a1a2e, #0f3460)", "important");
         sendButton.style.setProperty("color", "white", "important");
         sendButton.style.setProperty("border", "none", "important");
-        sendButton.style.setProperty("border-radius", "8px", "important");
+    sendButton.style.setProperty("border-radius", "8px 0px 0px 8px", "important");
         sendButton.style.setProperty("font-weight", "600", "important");
         sendButton.style.setProperty("letter-spacing", "0.3px", "important");
         sendButton.style.setProperty("box-shadow", "0 2px 8px rgba(15, 52, 96, 0.4)", "important");
