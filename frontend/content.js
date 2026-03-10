@@ -1,7 +1,5 @@
-// -----------------------------
-// SAFESPACE BANNER
-// -----------------------------
 function addRecordingBanner() {
+    // Prevent duplicate banners if function runs multiple times
     if (document.getElementById("safeSpaceBanner")) return;
 
     const banner = document.createElement("div");
@@ -24,12 +22,11 @@ function addRecordingBanner() {
     document.body.style.paddingTop = "22px";
 }
 
-// -----------------------------
-// OFFENSIVE POPUP
-// -----------------------------
-function showOffensivePopup() {
+function showOffensivePopup(classification, confidence) {
+    // Prevent duplicate popups
     if (document.getElementById("safeSpacePopup")) return;
 
+    // Dark overlay behind the popup
     const overlay = document.createElement("div");
     overlay.id = "safeSpacePopup";
     overlay.style.position = "fixed";
@@ -43,6 +40,7 @@ function showOffensivePopup() {
     overlay.style.justifyContent = "center";
     overlay.style.zIndex = "10000";
 
+    // White popup box
     const popup = document.createElement("div");
     popup.style.backgroundColor = "white";
     popup.style.padding = "20px";
@@ -52,13 +50,18 @@ function showOffensivePopup() {
     popup.style.maxWidth = "400px";
     popup.style.fontFamily = "Arial, sans-serif";
 
+    // Show AI classification (toxic/racist/sexist) and confidence %
     popup.innerHTML = `
         <h2 style="color:red;">⚠️ Offensive Content Detected</h2>
+        <p>Your email has been classified as 
+            <strong style="color:red; text-transform:uppercase;">${classification}</strong>
+        </p>
+        <p>AI Confidence: <strong>${(confidence * 100).toFixed(1)}%</strong></p>
         <p>Please rephrase your email before sending.</p>
     `;
 
     const cancelBtn = document.createElement("button");
-    cancelBtn.innerText = "Cancel";
+    cancelBtn.innerText = "Edit Email";
     cancelBtn.style.padding = "8px 16px";
     cancelBtn.style.marginTop = "10px";
     cancelBtn.style.backgroundColor = "red";
@@ -67,6 +70,7 @@ function showOffensivePopup() {
     cancelBtn.style.borderRadius = "4px";
     cancelBtn.style.cursor = "pointer";
 
+    // Remove popup when user clicks Edit Email
     cancelBtn.addEventListener("click", () => overlay.remove());
 
     popup.appendChild(cancelBtn);
@@ -74,9 +78,6 @@ function showOffensivePopup() {
     document.body.appendChild(overlay);
 }
 
-// -----------------------------
-// GET EMAIL CONTENT
-// -----------------------------
 function getEmailContent() {
     const subjectField = document.querySelector('input[aria-label="Subject"]');
     const bodyDiv = document.querySelector('div.elementToProof');
@@ -84,17 +85,16 @@ function getEmailContent() {
     const subject = subjectField ? subjectField.value : "";
     const body = bodyDiv ? bodyDiv.innerText : "";
 
+    // Combine subject and body so AI checks full context
     const fullEmail = `Subject: ${subject}\n\n${body}`;
+
     console.log("SafeSpace captured email:");
     console.log(fullEmail);
 
     sendToBackend(fullEmail);
 }
 
-// -----------------------------
-// SEND TO BACKEND
-// -----------------------------
-let sendBlocked = false; // prevent multiple clicks
+let sendBlocked = false; // prevents multiple sends while AI is checking
 
 function sendToBackend(emailText) {
     const sendButton = document.querySelector('button[aria-label="Send"]');
@@ -107,154 +107,81 @@ function sendToBackend(emailText) {
     })
         .then(res => res.json())
         .then(data => {
+            // Log full AI response for debugging
+            console.log("SafeSpace AI result:", data);
+
             if (data.offensive) {
-                showOffensivePopup();
-                sendBlocked = false; // allow user to rephrase
+                // Email is toxic/racist/sexist — block send and warn user
+                showOffensivePopup(data.classification, data.confidence);
+                sendBlocked = false; // let user edit and try again
             } else {
+                // Email is safe — proceed with sending
                 actuallySendEmail(sendButton);
             }
         })
         .catch(err => {
-            console.error("Backend error:", err);
+            // If backend is offline log error and unblock send
+            console.error("SafeSpace backend error:", err);
             sendBlocked = false;
         });
 }
 
-// -----------------------------
-// ACTUALLY SEND EMAIL
-// -----------------------------
 function actuallySendEmail(sendButton) {
     if (!sendButton) return;
 
+    // Remove interceptor first to avoid triggering our check again
     sendButton.removeEventListener("click", handleSendClick);
 
+    // Simulate real mouse click to trigger Outlook send
     sendButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     sendButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     sendButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
+    // Re-attach interceptor for next email
     setupSendButton();
 }
 
-// -----------------------------
-// SEND BUTTON CLICK HANDLER
-// -----------------------------
 function handleSendClick(event) {
     const sendButton = event.currentTarget;
+
     if (!sendBlocked) {
+        // First click — block send and start AI check
         event.preventDefault();
         event.stopPropagation();
 
-        sendBlocked = true;
-        getEmailContent();
+        sendBlocked = true; // block further clicks while checking
+        getEmailContent();  // capture email and send to AI
     } else {
+        // Already checking — block this click too
         event.preventDefault();
         event.stopPropagation();
     }
 }
 
-// -----------------------------
-// SETUP SEND BUTTON
-// -----------------------------
+
 function setupSendButton() {
     const sendButton = document.querySelector('button[aria-label="Send"]');
 
     if (sendButton) {
+        // Yellow highlight so user knows SafeSpace is watching this button
         sendButton.style.setProperty("background-color", "yellow", "important");
 
+        // Remove old listener first to avoid attaching duplicates
         sendButton.removeEventListener("click", handleSendClick);
         sendButton.addEventListener("click", handleSendClick);
 
-        console.log("SafeSpace: Send button ready");
+        console.log("SafeSpace: Send button interceptor attached");
     } else {
+        // Button not found yet — retry in 500ms
         setTimeout(setupSendButton, 500);
     }
 }
 
-
-function highlightForwardButtons() {
-
-    const forwardButtons = document.querySelectorAll('button[aria-label="Forward"]');
-
-    forwardButtons.forEach(button => {
-
-        button.style.backgroundColor = "yellow";
-        button.style.color = "black";
-
-        if (document.getElementById("safeSpaceReportBtn")) return;
-
-        const reportBtn = document.createElement("button");
-        reportBtn.id = "safeSpaceReportBtn";
-        reportBtn.innerText = "Report";
-
-        reportBtn.style.marginLeft = "6px";
-        reportBtn.style.padding = "6px 10px";
-        reportBtn.style.backgroundColor = "orange";
-        reportBtn.style.color = "black";
-        reportBtn.style.border = "none";
-        reportBtn.style.borderRadius = "4px";
-        reportBtn.style.cursor = "pointer";
-        reportBtn.style.fontWeight = "bold";
-
-        reportBtn.addEventListener("click", () => {
-
-            // -----------------------------
-            // GET SENDER NAME
-            // -----------------------------
-            const senderElement = document.querySelector('[aria-label^="From:"]');
-            const sender = senderElement ? senderElement.innerText : "Unknown Sender";
-
-            // -----------------------------
-            // GET SUBJECT
-            // -----------------------------
-            const subjectField = document.querySelector('input[aria-label="Subject"]');
-            const subject = subjectField ? subjectField.value : "(No Subject)";
-
-            // -----------------------------
-            // GET EMAIL BODY
-            // -----------------------------
-            const bodyElements = document.querySelectorAll(".elementToProof, .x_elementToProof");
-
-            let body = "";
-
-            if (bodyElements.length > 0) {
-                bodyElements.forEach(el => {
-                    body += el.innerText + "\n";
-                });
-            } else {
-                // fallback for opened email view
-                const messageBody = document.querySelector('[role="document"]');
-                body = messageBody ? messageBody.innerText : "";
-            }
-
-            // -----------------------------
-            // BUILD EMAIL DATA
-            // -----------------------------
-            const emailData = `
-Sender: ${sender}
-Subject: ${subject}
-
-${body}
-`;
-
-            console.log("📨 Email reported:");
-            console.log(emailData, 111);
-
-
-
-        });
-
-        button.parentElement.appendChild(reportBtn);
-    });
-}
-
-
 function addReportButtons() {
-
     const forwardButtons = document.querySelectorAll('button[aria-label="Forward"]');
 
     forwardButtons.forEach(forwardBtn => {
-
-        // Avoid adding duplicate report buttons
+        // Skip if report button already added next to this forward button
         if (forwardBtn.nextElementSibling && forwardBtn.nextElementSibling.id === "safeSpaceReportBtn") {
             return;
         }
@@ -265,7 +192,7 @@ function addReportButtons() {
         reportBtn.innerText = "Report";
         reportBtn.setAttribute("aria-label", "Report Email");
 
-        // Simple styling
+        // Orange styling to stand out from Outlook buttons
         reportBtn.style.marginLeft = "6px";
         reportBtn.style.padding = "6px 10px";
         reportBtn.style.backgroundColor = "orange";
@@ -275,21 +202,20 @@ function addReportButtons() {
         reportBtn.style.cursor = "pointer";
         reportBtn.style.fontWeight = "bold";
 
-
         reportBtn.addEventListener("click", () => {
-            console.log("report button has been clicked!");
+            console.log("SafeSpace: Report button clicked");
 
+            // Collect email details
             const subject = getEmailSubject();
             const body = getEmailBody();
             const sender = getSenderName();
 
-            console.log("📤 Payload:", { sender, subject, body });
+            console.log("SafeSpace: Reporting email from", sender);
 
+            // POST reported email to backend /report endpoint
             fetch("http://127.0.0.1:8000/report", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     sender: sender,
                     subject: subject,
@@ -298,25 +224,26 @@ function addReportButtons() {
             })
                 .then(res => res.json())
                 .then(data => {
-                    console.log("Report response:", data);
+                    console.log("SafeSpace report response:", data);
+                    // Show toast confirmation to user
                     showReportPopup();
                 })
                 .catch(err => {
-                    console.error("Report error:", err);
+                    console.error("SafeSpace report error:", err);
                 });
         });
 
-        // Insert after Forward button
+        // Insert Report button right after Forward button
         forwardBtn.parentNode.insertBefore(reportBtn, forwardBtn.nextSibling);
     });
 }
-function showReportPopup() {
 
+function showReportPopup() {
     const popup = document.createElement("div");
 
-    popup.innerText =
-        "This email has been flagged and reported through SafeSpace. Our system will review the content to ensure communication remains respectful and professional.";
+    popup.innerText = "This email has been flagged and reported through SafeSpace. Our system will review the content to ensure communication remains respectful and professional.";
 
+    // Toast style — fixed in top right corner
     popup.style.position = "fixed";
     popup.style.top = "20px";
     popup.style.right = "20px";
@@ -331,100 +258,65 @@ function showReportPopup() {
 
     document.body.appendChild(popup);
 
+    // Auto remove after 5 seconds
     setTimeout(() => popup.remove(), 5000);
 }
 
-// -----------------------------
-// DEBUG HIGHLIGHT MESSAGE TEXT
-// -----------------------------
-
 function getEmailSubject() {
-
     const messageSpans = document.querySelectorAll("span.JdFsz");
 
     if (messageSpans.length === 0) {
-        console.log("SafeSpace DEBUG: No message spans found");
-        return;
+        console.log("SafeSpace: No subject found");
+        return "";
     }
 
-    messageSpans.forEach((span, index) => {
-
-        const spanText = span.innerText;
-
-        // span.style.backgroundColor = "yellow";
-        // span.style.color = "black";
-        // span.style.padding = "2px 4px";
-        // span.style.borderRadius = "3px";
-
-        // console.log("SafeSpace DEBUG: Span", index);
-        console.log("SafeSpace DEBUG Subject:", span.innerHTML);
-        // console.log("Element:", span);
-        return spanText;
-
-    });
-
+    const subject = messageSpans[0].innerText;
+    console.log("SafeSpace subject:", subject);
+    return subject;
 }
 
 function getEmailBody() {
     const bodyContainer = document.querySelector('div[data-test-id="mailMessageBodyContainer"]');
 
     if (!bodyContainer) {
-        console.log("SafeSpace DEBUG: No email body container found");
+        console.log("SafeSpace: No email body container found");
         return "";
     }
 
     const bodyElements = bodyContainer.querySelectorAll('div.x_elementToProof');
 
     if (bodyElements.length === 0) {
-        console.log("SafeSpace DEBUG: No email body elements found");
+        console.log("SafeSpace: No email body elements found");
         return "";
     }
 
     let fullText = "";
 
-    bodyElements.forEach((el, index) => {
+    bodyElements.forEach(el => {
+        // Yellow highlight helps debug which elements are being read
         el.style.backgroundColor = 'yellow';
-        // el.style.borderRadius = '3px';
-        // el.style.padding = '2px 4px';
-        // console.log("SafeSpace DEBUG: Found email body element", index, el);
-        // console.log("SafeSpace DEBUG: Text content:", el.innerText);
         fullText += el.innerText + "\n";
     });
 
-    console.log("SafeSpace DEBUG Body: ", fullText);
+    console.log("SafeSpace body:", fullText);
     return fullText;
 }
-
 
 function getSenderName() {
     const senderSpan = document.querySelector('span.OZZZK');
 
     if (!senderSpan) {
-        console.log("SafeSpace DEBUG: No sender name found");
+        console.log("SafeSpace: No sender name found");
         return "";
     }
 
-    // console.log("SafeSpace DEBUG: Sender name element:", senderSpan);
-    console.log("SafeSpace DEBUG: Sender name text:", senderSpan.innerText);
-
+    console.log("SafeSpace sender:", senderSpan.innerText);
     return senderSpan.innerText;
 }
 
 
-// Run repeatedly because Outlook loads elements dynamically
-setInterval(addReportButtons, 1500);
-// setInterval(highlightForwardButtons, 2000);
-
-// -----------------------------
-// START EXTENSION
-// -----------------------------
 addRecordingBanner();
+
 setupSendButton();
-// setTimeout(addReportButton, 1000); // add after toolbar renders
-// setTimeout(highlightReplyForward, 1000);
 
-// Run immediately
-// highlightForwardButtons();
-
-// Keep checking because Outlook loads buttons dynamically
-// setInterval(highlightForwardButtons, 1000);
+setInterval(addReportButtons, 1500);
