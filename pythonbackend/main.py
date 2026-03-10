@@ -1,10 +1,13 @@
-from fastapi import FastAPI,Request
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+import sys
+import os
+sys.path.append(r"C:\Users\HP\OneDrive\Desktop\SafeSpace\backend")
+from model_loader import predict_text
 
 app = FastAPI(title="Outlook Email Tone Checker")
 
-# Allow CORS for your extension
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,7 +18,11 @@ app.add_middleware(
 class EmailText(BaseModel):
     text: str
 
-OFFENSIVE_WORDS = ["idiot", "stupid", "hate", "dumb"]
+class ReportedEmail(BaseModel):
+    sender: str = ""
+    subject: str = ""
+    body: str = ""
+
 
 @app.post("/check-email")
 async def check_email(email: EmailText):
@@ -24,30 +31,28 @@ async def check_email(email: EmailText):
     print(email.text)
     print("----------------------------\n")
 
-    text_lower = email.text.lower()
-    offensive_found = any(word in text_lower for word in OFFENSIVE_WORDS)
+    # ✅ Use AI model instead of keyword list
+    result = predict_text(email.text)
 
-    return {"offensive": offensive_found}
+    classification = result["classification"]  # safe / toxic / racist / sexist
+    confidence = result["confidence"]
 
+    is_offensive = classification != "safe"
 
-# @app.post("/report-email")
-# async def report_email(email: EmailText):
+    print(f"🤖 AI Result: {classification} ({confidence})")
 
-#     print("\n🚨 ------ EMAIL REPORTED TO SAFESPACE ------")
-#     print(email.text)
-#     print("🚨 -----------------------------------------\n")
-
-#     return {
-#         "status": "reported",
-#         "message": "Email successfully reported to SafeSpace"
-#     }
+    return {
+        "offensive": is_offensive,
+        "classification": classification,
+        "confidence": confidence
+    }
 
 
-class ReportedEmail(BaseModel):
-    sender: str = ""
-    subject: str = ""
-    body: str = ""
-
+# -----------------------------
+# REPORT EMAIL ENDPOINT
+# Called when user clicks the Report button
+# Logs the reported email details
+# -----------------------------
 @app.post("/report")
 async def report_email(request: Request):
     raw = await request.json()
@@ -55,13 +60,19 @@ async def report_email(request: Request):
 
     email = ReportedEmail(**raw)
 
+    # Also run AI check on reported email for logging
+    result = predict_text(email.body)
+
     print("\n🚨 ------ EMAIL REPORTED TO SAFESPACE ------")
     print(f"👤 Sender:  {email.sender}")
     print(f"📋 Subject: {email.subject}")
     print(f"📝 Body:\n{email.body}")
+    print(f"🤖 AI Classification: {result['classification']} ({result['confidence']})")
     print("🚨 -----------------------------------------\n")
 
     return {
         "status": "reported",
-        "message": "Email successfully reported to SafeSpace"
+        "message": "Email successfully reported to SafeSpace",
+        "classification": result["classification"],
+        "confidence": result["confidence"]
     }

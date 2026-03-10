@@ -8,7 +8,7 @@
   ],
   "content_scripts": [
     {
-      "matches": ["https://outlook.office.com/*","http://127.0.0.1:5500/*"],
+      "matches": ["https://outlook.office.com/*","http://127.0.0.1:5500/*","https://outlook.cloud.microsoft/*"],
       "js": ["content.js"]
     }
   ]
