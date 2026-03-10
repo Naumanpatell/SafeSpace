@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outlook Button Simulation</title>
+  <style>
+    /* Minimal styling to resemble a button with icon */
+    #splitButton-rjj__primaryActionButton {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      background-color: #0078d4; /* Outlook blue */
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    #splitButton-rjj__primaryActionButton:hover {
+      background-color: #005a9e;
+    }
+
+    #splitButton-rjj__primaryActionButton .fui-Button__icon {
+      margin-right: 6px;
+      font-style: normal;
+      font-weight: bold;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Simulated Outlook Send Button</h2>
+  <button 
+    type="button" 
+    id="splitButton-rjj__primaryActionButton" 
+    aria-label="Send" 
+    title="Send (Ctrl+Enter)"
+  >
+    <span class="fui-Button__icon">✉️</span>
+    Send
+  </button>
+
+  <script>
+    const button = document.getElementById("splitButton-rjj__primaryActionButton");
+
+    button.addEventListener("click", () => {
+      alert("Simulated Send clicked!");
+      console.log("Send button clicked for testing purposes.");
+    });
+  </script>
+</body>
+</html>

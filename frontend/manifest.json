@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "SafeSpace",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": [
+    "https://outlook.office.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://outlook.office.com/*","http://127.0.0.1:5500/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
