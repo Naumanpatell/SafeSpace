@@ -515,6 +515,6 @@ function getSenderName() {
 
 addRecordingBanner();
 
-setupSendButton();
+setInterval(setupSendButton,1500);
 
 setInterval(addReportButtons, 1500);
